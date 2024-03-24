@@ -23,7 +23,9 @@ from airflow.providers.http.operators.http import SimpleHttpOperator
 
 def _detect_wether(ti):
     data = ti.xcom_pull(task_ids=['get_http_data'])
-    temperture = float(data["main"]["temp"]) - 273
+    print(data)
+    response = json.loads(data[0])
+    temperture = float(response["main"]["temp"]) - 273
     # response = requests.get("https://api.openweathermap.org/data/2.5/weather?q=Moscow&appid=6ea20a03b4f3369fbe408ee23d8f86fa&lang=ru")
     # rsp = json.loads(response.content.decode('utf-8'))
     # temperture = float(rsp["main"]["temp"]) - 273
@@ -34,8 +36,7 @@ def _detect_wether(ti):
     else:
         return "cold"
 
-
-with DAG("wether_detector", default_args={"retries": 1}, start_date=datetime(2021, 1 ,1), schedule='@daily', catchup=False) as dag:
+with DAG("wether_detector_new", default_args={"retries": 1}, start_date=datetime(2021, 1 ,1), schedule='@daily', catchup=False) as dag:
 
 
 
@@ -44,11 +45,12 @@ with DAG("wether_detector", default_args={"retries": 1}, start_date=datetime(202
         method='GET',
         http_conn_id='http_wether',
         endpoint='/data/2.5/weather?q=Moscow&appid=6ea20a03b4f3369fbe408ee23d8f86fa&lang=ru',
-        response_filter = lambda response : json.loads(response.content.decode('utf-8')),
+        # response_filter = lambda response : json.loads(response.text),
         # headers={'Content-Type': 'application/json'},
         # xcom_push=True
         dag=dag
     )
+
 
     detect_wether = BranchPythonOperator(
         task_id="detect_wether",
